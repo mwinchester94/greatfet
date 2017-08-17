@@ -31,6 +31,8 @@
 #include "usb.h"
 #include "usb_standard_request.h"
 
+#include "debug.h"
+
 #include <rom_iap.h>
 #include "usb_descriptor.h"
 #include "usb_device.h"
@@ -184,18 +186,8 @@ int main(void) {
 	init_greatdancer_api();
 
 	while(true) {
-		if(logic_analyzer_enabled) {
-			logic_analyzer_mode();
-		}
-		if(sdir_rx_enabled) {
-			sdir_rx_mode();
-		}
-		if(sdir_tx_enabled) {
-			sdir_tx_mode();
-		}
-		if(adc_mode_enabled) {
-			adc_mode();
-		}
+		adc_mode();
+
 		if(heartbeat_mode_enabled) {
 			heartbeat_mode();
 		}

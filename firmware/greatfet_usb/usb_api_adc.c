@@ -52,50 +52,30 @@ usb_request_status_t usb_vendor_request_read_adc(
 	return USB_REQUEST_STATUS_OK;
 }
 
-// int currentResult=0;
 
-// //AD0 Interrupt Function
-// void adc0_isr(void) {
-// 	unsigned long dummyRead;
-// 	unsigned long ACD0_GDR_Read = ADC0_GDR;
 
-// 	//Extract Conversion Result
-// 	currentResult = (ACD0_GDR_Read>>6) & 0x3FF;
-// 	//Read to Clear Done flag , Also clears AD0 interrupt
-// 	dummyRead = ADC0_DR0;
-// 	//Signal that ISR has finished
-// 	//VICVectAddr = 0x0;
-// }
 
 #define BLK_LEN 0x4000
+
+static uint8_t tx_buffer[] = "hello, there...";
+static uint8_t tx_pos = 0;
+
+void tx_complete(void* buffer, unsigned int transferred) {
+	(void)buffer;
+	tx_pos += transferred;
+}
+
 void adc_mode(void) {
-	uint8_t pins = 1;
-	uint8_t clkdiv = 45;
-	uint8_t clks = 0x2;
-	uint16_t i, j = 0;
-
-
-// vector_table.irq[NVIC_ADC0_IRQ] = adc0_isr;
-
-	// adc_init(adc_num, pins, clkdiv, clks);
-
-	ADC0_CR = ADC_CR_SEL((uint32_t) pins) |
-	    	ADC_CR_CLKDIV((uint32_t) clkdiv) |
-	    	ADC_CR_CLKS((uint32_t) clks) |
-			ADC_CR_PDN;
-	ADC0_CR |= ADC_CR_START(1);
-	while(adc_mode_enabled) {
-		//adc_start(adc_num);
-		// adc_read_to_buffer(adc_num, pins, buf, 10);
-
-		for(i=0; i<BLK_LEN; i++) {
-			while(!(ADC0_DR0 & ADC_DR_DONE));
-			ADC0_CR |= ADC_CR_START(1);
-			usb_bulk_buffer[i+j] = (ADC0_DR0>>8) & 0x0ff;
-		}
-		usb_transfer_schedule_block(
-				&usb0_endpoint_bulk_in,
-				&usb_bulk_buffer[j], BLK_LEN, 0, 0);
-		j = (j+BLK_LEN) % 0x8000;
+	static bool first = true;
+	if (first) {
+		usb_endpoint_init(&usb0_endpoint_bulk_in);
+		first = false;
 	}
+
+	usb_transfer_schedule_block(
+			&usb0_endpoint_bulk_in, /* endpoint */
+			&tx_buffer[tx_pos], 		/* data */
+			(tx_pos < 15 ? 1 : 0), 											/* maximum_length */
+			&tx_complete, 							/* completion_cb */
+			0); 										/* user_data */
 }
